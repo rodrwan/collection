@@ -1,6 +1,15 @@
 package song
 
-import "github.com/google/uuid"
+import (
+	"errors"
+
+	"github.com/google/uuid"
+)
+
+var (
+	ErrMissingValues = errors.New("missing value")
+	ErrSongNotFound  = errors.New("song not found")
+)
 
 type Song struct {
 	id     uuid.UUID
@@ -11,6 +20,9 @@ type Song struct {
 }
 
 func NewSong(name string, length int64, recordID uuid.UUID) (Song, error) {
+	if name == "" {
+		return Song{}, ErrMissingValues
+	}
 	return Song{
 		name:     name,
 		length:   length,

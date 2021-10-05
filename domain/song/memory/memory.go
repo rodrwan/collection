@@ -2,6 +2,7 @@ package memory
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/google/uuid"
@@ -53,13 +54,14 @@ func (mr *MemoryRepository) Get(id uuid.UUID) (song.Song, error) {
 	defer mr.Unlock()
 
 	for _, s := range mr.songs {
+		fmt.Println(s.ID, id)
 		if s.ID == id {
 			return s.ToSong(), nil
 		}
 	}
 
 	// Convert to aggregate
-	return song.Song{}, nil
+	return song.Song{}, song.ErrSongNotFound
 }
 
 func (mr *MemoryRepository) Add(s song.Song) error {

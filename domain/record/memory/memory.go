@@ -57,7 +57,7 @@ func (mr *MemoryRepository) Get(id uuid.UUID) (record.Record, error) {
 		}
 	}
 
-	return record.Record{}, nil
+	return record.Record{}, record.ErrRecordNotFound
 }
 
 func (mr *MemoryRepository) Add(r record.Record) error {

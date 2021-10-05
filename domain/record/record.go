@@ -8,7 +8,8 @@ import (
 )
 
 var (
-	ErrMissingValues = errors.New("missing value")
+	ErrMissingValues  = errors.New("missing value")
+	ErrRecordNotFound = errors.New("record not found")
 )
 
 type Record struct {
