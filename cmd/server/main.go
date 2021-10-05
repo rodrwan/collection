@@ -23,7 +23,10 @@ func main() {
 
 	api := app.Group("/api")
 
-	handlers := server.NewServer(collectionService)
+	handlers, err := server.NewServer(collectionService)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	api.Get("/records", handlers.GetRecords)
 	api.Post("/records", handlers.CreateRecord)

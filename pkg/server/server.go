@@ -1,20 +1,29 @@
 package server
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/rodrwan/collection/services"
 )
 
+var (
+	ErrServiceCannotBeNil = errors.New("service cannot be nil")
+)
+
 type Server struct {
 	collectionService *services.CollectionService
 }
 
-func NewServer(collectionService *services.CollectionService) Server {
+func NewServer(collectionService *services.CollectionService) (Server, error) {
+	if collectionService == nil {
+		return Server{}, ErrServiceCannotBeNil
+	}
+
 	return Server{
 		collectionService: collectionService,
-	}
+	}, nil
 }
 
 func (srv Server) CreateRecord(c *fiber.Ctx) error {
