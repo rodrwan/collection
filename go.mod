@@ -5,6 +5,7 @@ go 1.14
 require (
 	github.com/andybalholm/brotli v1.0.3 // indirect
 	github.com/gofiber/fiber/v2 v2.19.0
+	github.com/gofiber/helmet/v2 v2.2.2 // indirect
 	github.com/google/uuid v1.3.0
 	github.com/jmoiron/sqlx v1.3.4 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
