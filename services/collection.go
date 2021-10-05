@@ -45,6 +45,7 @@ func WithRecordMemoryRepository() CollectionConfiguration {
 		mem, err := memory.New(ctx)
 		if err != nil {
 			log.Fatal(err)
+			return err
 		}
 
 		os.records = mem
@@ -57,6 +58,7 @@ func WithRecordPostgresRepository(connectionString string) CollectionConfigurati
 	return func(os *CollectionService) error {
 		pg, err := postgres.New(context.Background(), connectionString)
 		if err != nil {
+			log.Fatal(err)
 			return err
 		}
 
@@ -72,6 +74,7 @@ func WithSongMemoryRepository() CollectionConfiguration {
 		mem, err := smemory.New(ctx)
 		if err != nil {
 			log.Fatal(err)
+			return err
 		}
 
 		os.songs = mem
