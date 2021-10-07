@@ -1,0 +1,814 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>memory: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/rodrwan/collection/domain/record/memory/memory.go (96.0%)</option>
+				
+				<option value="file1">github.com/rodrwan/collection/domain/record/record.go (100.0%)</option>
+				
+				<option value="file2">github.com/rodrwan/collection/domain/song/memory/memory.go (91.7%)</option>
+				
+				<option value="file3">github.com/rodrwan/collection/domain/song/song.go (100.0%)</option>
+				
+				<option value="file4">github.com/rodrwan/collection/pkg/server/server.go (93.1%)</option>
+				
+				<option value="file5">github.com/rodrwan/collection/services/services.go (79.3%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package memory
+
+import (
+        "context"
+        "sync"
+
+        "github.com/google/uuid"
+        "github.com/rodrwan/collection/domain/record"
+)
+
+type MemoryRepository struct {
+        records []memoryRecord
+
+        sync.Mutex
+}
+
+type memoryRecord struct {
+        ID   uuid.UUID `db:"id"`
+        Name string    `db:"name"`
+        Kind string    `db:"kind"`
+}
+
+// NewFromCustomer takes in a aggregate and converts into internal structure
+func NewFromRecord(r record.Record) memoryRecord <span class="cov8" title="1">{
+        return memoryRecord{
+                ID:   r.GetID(),
+                Name: r.GetName(),
+                Kind: r.GetKind(),
+        }
+}</span>
+
+func (pr memoryRecord) ToRecord() record.Record <span class="cov8" title="1">{
+        r := record.Record{}
+
+        r.SetID(pr.ID)
+        r.SetName(pr.Name)
+        r.SetKind(pr.Kind)
+
+        return r
+}</span>
+
+// Create a new mongodb repository
+func New(ctx context.Context) (*MemoryRepository, error) <span class="cov8" title="1">{
+        return &amp;MemoryRepository{
+                records: make([]memoryRecord, 0),
+        }, nil
+}</span>
+
+func (mr *MemoryRepository) Get(id uuid.UUID) (record.Record, error) <span class="cov8" title="1">{
+        mr.Lock()
+        defer mr.Unlock()
+
+        for _, rec := range mr.records </span><span class="cov8" title="1">{
+                if rec.ID == id </span><span class="cov8" title="1">{
+                        return rec.ToRecord(), nil
+                }</span>
+        }
+
+        <span class="cov8" title="1">return record.Record{}, record.ErrRecordNotFound</span>
+}
+
+func (mr *MemoryRepository) Add(r record.Record) error <span class="cov8" title="1">{
+        mr.Lock()
+        defer mr.Unlock()
+
+        internal := NewFromRecord(r)
+        mr.records = append(mr.records, internal)
+
+        return nil
+}</span>
+
+func (mr *MemoryRepository) FindRecords() ([]record.Record, error) <span class="cov8" title="1">{
+        mr.Lock()
+        defer mr.Unlock()
+
+        // Convert to aggregate
+        var rr []record.Record
+        for _, r := range mr.records </span><span class="cov8" title="1">{
+                rr = append(rr, r.ToRecord())
+        }</span>
+
+        <span class="cov8" title="1">return rr, nil</span>
+}
+
+func (mr *MemoryRepository) Update(r *record.Record) error <span class="cov0" title="0">{
+        panic("to implement")</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package record
+
+import (
+        "errors"
+
+        "github.com/google/uuid"
+        "github.com/rodrwan/collection/domain/song"
+)
+
+var (
+        ErrMissingValues  = errors.New("missing value")
+        ErrRecordNotFound = errors.New("record not found")
+)
+
+type Record struct {
+        id    uuid.UUID
+        name  string
+        kind  string
+        songs []*song.Song
+}
+
+type PublicRecord struct {
+        ID    uuid.UUID    `json:"id,omitempty"`
+        Name  string       `json:"name,omitempty"`
+        Kind  string       `json:"kind,omitempty"`
+        Songs []*song.Song `json:"songs,omitempty"`
+}
+
+func (r *Record) ToPublic() PublicRecord <span class="cov8" title="1">{
+        return PublicRecord{
+                ID:   r.GetID(),
+                Name: r.GetName(),
+                Kind: r.GetKind(),
+        }
+}</span>
+
+func (pr *PublicRecord) ToRecord() *Record <span class="cov8" title="1">{
+        r := &amp;Record{}
+
+        r.SetID(pr.ID)
+        r.SetName(pr.Name)
+        r.SetKind(pr.Kind)
+
+        return r
+}</span>
+
+func ToPublicArray(records []Record) []PublicRecord <span class="cov8" title="1">{
+        var rr []PublicRecord
+
+        for _, r := range records </span><span class="cov8" title="1">{
+                rr = append(rr, r.ToPublic())
+        }</span>
+        <span class="cov8" title="1">return rr</span>
+}
+
+func NewRecord(name, kind string) (Record, error) <span class="cov8" title="1">{
+        if name == "" </span><span class="cov8" title="1">{
+                return Record{}, ErrMissingValues
+        }</span>
+
+        <span class="cov8" title="1">return Record{
+                id:    uuid.New(),
+                name:  name,
+                kind:  kind,
+                songs: make([]*song.Song, 0),
+        }, nil</span>
+}
+
+func NewRecordWithID(id uuid.UUID, name, kind string) (Record, error) <span class="cov8" title="1">{
+        if name == "" </span><span class="cov8" title="1">{
+                return Record{}, ErrMissingValues
+        }</span>
+
+        <span class="cov8" title="1">return Record{
+                id:    id,
+                name:  name,
+                kind:  kind,
+                songs: make([]*song.Song, 0),
+        }, nil</span>
+}
+
+func (r *Record) AddSong(song *song.Song) error <span class="cov8" title="1">{
+        r.songs = append(r.songs, song)
+
+        return nil
+}</span>
+
+func (r *Record) SetID(id uuid.UUID) <span class="cov8" title="1">{
+        r.id = id
+}</span>
+
+func (r *Record) SetName(name string) <span class="cov8" title="1">{
+        r.name = name
+}</span>
+
+func (r *Record) SetKind(kind string) <span class="cov8" title="1">{
+        r.kind = kind
+}</span>
+
+func (r Record) GetID() uuid.UUID <span class="cov8" title="1">{
+        return r.id
+}</span>
+
+func (r Record) GetName() string <span class="cov8" title="1">{
+        return r.name
+}</span>
+
+func (r Record) GetKind() string <span class="cov8" title="1">{
+        return r.kind
+}</span>
+
+func (r Record) GetSongs() []*song.Song <span class="cov8" title="1">{
+        return r.songs
+}</span>
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package memory
+
+import (
+        "context"
+        "fmt"
+        "sync"
+
+        "github.com/google/uuid"
+        "github.com/rodrwan/collection/domain/song"
+)
+
+type MemoryRepository struct {
+        songs []memorySong
+
+        sync.Mutex
+}
+
+type memorySong struct {
+        ID       uuid.UUID `db:"id"`
+        Name     string    `db:"name"`
+        Length   int64     `db:"length"`
+        RecordID uuid.UUID `db:"record_id"`
+}
+
+func NewFromSong(s song.Song) memorySong <span class="cov8" title="1">{
+        return memorySong{
+                ID:       s.GetID(),
+                Name:     s.GetName(),
+                Length:   s.GetLength(),
+                RecordID: s.GetRecordID(),
+        }
+}</span>
+
+func (pr memorySong) ToSong() song.Song <span class="cov8" title="1">{
+        s := song.Song{}
+
+        s.SetID(pr.ID)
+        s.SetName(pr.Name)
+        s.SetLength(pr.Length)
+        s.SetRecordID(pr.RecordID)
+
+        return s
+}</span>
+
+// Create a new mongodb repository
+func New(ctx context.Context) (*MemoryRepository, error) <span class="cov8" title="1">{
+        return &amp;MemoryRepository{
+                songs: make([]memorySong, 0),
+        }, nil
+}</span>
+
+func (mr *MemoryRepository) Get(id uuid.UUID) (song.Song, error) <span class="cov8" title="1">{
+        mr.Lock()
+        defer mr.Unlock()
+
+        for _, s := range mr.songs </span><span class="cov8" title="1">{
+                fmt.Println(s.ID, id)
+                if s.ID == id </span><span class="cov8" title="1">{
+                        return s.ToSong(), nil
+                }</span>
+        }
+
+        // Convert to aggregate
+        <span class="cov8" title="1">return song.Song{}, song.ErrSongNotFound</span>
+}
+
+func (mr *MemoryRepository) Add(s song.Song) error <span class="cov8" title="1">{
+        mr.Lock()
+        defer mr.Unlock()
+
+        internal := NewFromSong(s)
+        mr.songs = append(mr.songs, internal)
+
+        return nil
+}</span>
+
+func (mr *MemoryRepository) FindRecords() ([]song.Song, error) <span class="cov8" title="1">{
+        mr.Lock()
+        defer mr.Unlock()
+
+        var ss []song.Song
+        for _, s := range mr.songs </span><span class="cov8" title="1">{
+                ss = append(ss, s.ToSong())
+        }</span>
+
+        <span class="cov8" title="1">return ss, nil</span>
+}
+
+func (mr *MemoryRepository) Update(s *song.Song) error <span class="cov0" title="0">{
+        mr.Lock()
+        defer mr.Unlock()
+        panic("to implement")</span>
+}
+
+func (mr *MemoryRepository) FindSongsByRecord(id uuid.UUID) ([]song.Song, error) <span class="cov8" title="1">{
+        mr.Lock()
+        defer mr.Unlock()
+
+        var ss []song.Song
+        for _, s := range mr.songs </span><span class="cov8" title="1">{
+                if s.RecordID == id </span><span class="cov8" title="1">{
+                        ss = append(ss, s.ToSong())
+                }</span>
+        }
+
+        <span class="cov8" title="1">return ss, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package song
+
+import (
+        "errors"
+
+        "github.com/google/uuid"
+)
+
+var (
+        ErrMissingValues = errors.New("missing value")
+        ErrSongNotFound  = errors.New("song not found")
+)
+
+type Song struct {
+        id     uuid.UUID
+        name   string
+        length int64
+
+        recordID uuid.UUID
+}
+
+func NewSong(name string, length int64, recordID uuid.UUID) (Song, error) <span class="cov8" title="1">{
+        if name == "" </span><span class="cov8" title="1">{
+                return Song{}, ErrMissingValues
+        }</span>
+        <span class="cov8" title="1">return Song{
+                name:     name,
+                length:   length,
+                recordID: recordID,
+        }, nil</span>
+}
+
+func NewSongWithID(id uuid.UUID, name string, length int64, recordID uuid.UUID) (Song, error) <span class="cov8" title="1">{
+        if name == "" </span><span class="cov8" title="1">{
+                return Song{}, ErrMissingValues
+        }</span>
+
+        <span class="cov8" title="1">return Song{
+                id:       id,
+                name:     name,
+                length:   length,
+                recordID: recordID,
+        }, nil</span>
+}
+
+func (s Song) GetID() uuid.UUID <span class="cov8" title="1">{
+        return s.id
+}</span>
+
+func (s Song) GetName() string <span class="cov8" title="1">{
+        return s.name
+}</span>
+
+func (s Song) GetLength() int64 <span class="cov8" title="1">{
+        return s.length
+}</span>
+
+func (s Song) GetRecordID() uuid.UUID <span class="cov8" title="1">{
+        return s.recordID
+}</span>
+
+func (s *Song) SetID(id uuid.UUID) <span class="cov8" title="1">{
+        s.id = id
+}</span>
+
+func (s *Song) SetName(name string) <span class="cov8" title="1">{
+        s.name = name
+}</span>
+
+func (s *Song) SetLength(length int64) <span class="cov8" title="1">{
+        s.length = length
+}</span>
+
+func (s *Song) SetRecordID(recordID uuid.UUID) <span class="cov8" title="1">{
+        s.recordID = recordID
+}</span>
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package server
+
+import (
+        "errors"
+        "net/http"
+
+        "github.com/gofiber/fiber/v2"
+        "github.com/rodrwan/collection/services"
+)
+
+var (
+        ErrServiceCannotBeNil = errors.New("service cannot be nil")
+)
+
+type Server struct {
+        collectionService *services.CollectionService
+}
+
+func NewServer(collectionService *services.CollectionService) (Server, error) <span class="cov8" title="1">{
+        if collectionService == nil </span><span class="cov8" title="1">{
+                return Server{}, ErrServiceCannotBeNil
+        }</span>
+
+        <span class="cov8" title="1">return Server{
+                collectionService: collectionService,
+        }, nil</span>
+}
+
+func (srv Server) CreateRecord(c *fiber.Ctx) error <span class="cov8" title="1">{
+        params := new(struct {
+                Name string
+                Kind string
+        })
+
+        if err := c.BodyParser(&amp;params); err != nil </span><span class="cov8" title="1">{
+                return c.Status(http.StatusUnprocessableEntity).JSON(fiber.Map{
+                        "ok":    false,
+                        "error": err.Error(),
+                })
+        }</span>
+
+        <span class="cov8" title="1">record, err := srv.collectionService.AddRecord(params.Name, params.Kind)
+        if err != nil </span><span class="cov8" title="1">{
+                return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+                        "ok":    false,
+                        "error": err.Error(),
+                })
+        }</span>
+
+        <span class="cov8" title="1">return c.Status(http.StatusCreated).JSON(fiber.Map{
+                "ok":     true,
+                "record": record,
+        })</span>
+}
+
+func (srv Server) GetRecords(c *fiber.Ctx) error <span class="cov8" title="1">{
+        records, err := srv.collectionService.FindAllRecord()
+        if err != nil </span><span class="cov0" title="0">{
+                return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
+                        "ok":    false,
+                        "error": err.Error(),
+                })
+        }</span>
+
+        <span class="cov8" title="1">return c.JSON(fiber.Map{
+                "ok":      true,
+                "records": records,
+        })</span>
+}
+
+func (srv Server) GetRecord(c *fiber.Ctx) error <span class="cov8" title="1">{
+        id := c.Params("id")
+
+        record, err := srv.collectionService.FindRecord(id)
+        if err != nil </span><span class="cov8" title="1">{
+                return c.Status(http.StatusNotFound).JSON(fiber.Map{
+                        "ok":    false,
+                        "error": "Not Found",
+                })
+        }</span>
+
+        <span class="cov8" title="1">return c.JSON(fiber.Map{
+                "ok":     true,
+                "record": record,
+        })</span>
+}
+
+func (srv Server) AddSongToRecord(c *fiber.Ctx) error <span class="cov8" title="1">{
+        id := c.Params("id")
+
+        record, err := srv.collectionService.FindRecord(id)
+        if err != nil </span><span class="cov8" title="1">{
+                return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+                        "ok":    false,
+                        "error": err.Error(),
+                })
+        }</span>
+
+        <span class="cov8" title="1">params := new(struct {
+                Name   string
+                Length int64
+        })
+
+        if err := c.BodyParser(&amp;params); err != nil </span><span class="cov8" title="1">{
+                return c.Status(http.StatusUnprocessableEntity).JSON(fiber.Map{
+                        "ok":    false,
+                        "error": err.Error(),
+                })
+        }</span>
+
+        <span class="cov8" title="1">if err := srv.collectionService.AddSongToRecord(record.ToRecord(), params.Name, params.Length); err != nil </span><span class="cov0" title="0">{
+                return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+                        "ok":    false,
+                        "error": err.Error(),
+                })
+        }</span>
+
+        <span class="cov8" title="1">return c.JSON(fiber.Map{
+                "ok":     true,
+                "record": record,
+        })</span>
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package services
+
+import (
+        "context"
+        "errors"
+        "log"
+
+        "github.com/google/uuid"
+        "github.com/rodrwan/collection/domain/record"
+        "github.com/rodrwan/collection/domain/record/memory"
+        rmock "github.com/rodrwan/collection/domain/record/mock"
+        "github.com/rodrwan/collection/domain/record/postgres"
+        "github.com/rodrwan/collection/domain/song"
+        smemory "github.com/rodrwan/collection/domain/song/memory"
+)
+
+var (
+        ErrInvalidType = errors.New("Invalid record type")
+)
+
+// ICollectionService ...
+type ICollectionService interface {
+        // AddRecord ...
+        AddRecord(name string, kind string) (record.Record, error)
+        // FindRecord ...
+        FindRecord(id string) (record.Record, error)
+        // AddSongToRecord ...
+        AddSongToRecord(record record.Record, name string, length int64) (record.Record, error)
+        // FindAllRecord...
+        FindAllRecord() ([]record.Record, error)
+}
+
+// CollectionConfiguration ...
+type CollectionConfiguration func(cs *CollectionService) error
+
+// CollectionService ...
+type CollectionService struct {
+        records record.RecordRepository
+        songs   song.SongRepository
+}
+
+// WithRecordMemoryRepository ...
+func WithRecordMemoryRepository() CollectionConfiguration <span class="cov8" title="1">{
+        return func(os *CollectionService) error </span><span class="cov8" title="1">{
+                ctx := context.Background()
+                mem, err := memory.New(ctx)
+                if err != nil </span><span class="cov0" title="0">{
+                        log.Fatal(err)
+                        return err
+                }</span>
+
+                <span class="cov8" title="1">os.records = mem
+                return nil</span>
+        }
+}
+
+// WithRecordPostgresRepository ...
+func WithRecordPostgresRepository(connectionString string) CollectionConfiguration <span class="cov0" title="0">{
+        return func(os *CollectionService) error </span><span class="cov0" title="0">{
+                pg, err := postgres.New(context.Background(), connectionString)
+                if err != nil </span><span class="cov0" title="0">{
+                        log.Fatal(err)
+                        return err
+                }</span>
+
+                <span class="cov0" title="0">os.records = pg
+                return nil</span>
+        }
+}
+
+// WithSongMemoryRepository ...
+func WithSongMemoryRepository() CollectionConfiguration <span class="cov8" title="1">{
+        return func(os *CollectionService) error </span><span class="cov8" title="1">{
+                ctx := context.Background()
+                mem, err := smemory.New(ctx)
+                if err != nil </span><span class="cov0" title="0">{
+                        log.Fatal(err)
+                        return err
+                }</span>
+
+                <span class="cov8" title="1">os.songs = mem
+                return nil</span>
+        }
+}
+
+// WithFakeRecordService ...
+func WithFakeRecordService(withError bool, id uuid.UUID) CollectionConfiguration <span class="cov8" title="1">{
+        return func(os *CollectionService) error </span><span class="cov8" title="1">{
+                os.records = rmock.MockRecordRepository{
+                        WithError: withError,
+                        RecordId:  id,
+                }
+
+                return nil
+        }</span>
+}
+
+func WithError() CollectionConfiguration <span class="cov8" title="1">{
+        return func(os *CollectionService) error </span><span class="cov8" title="1">{
+                return errors.New("with error")
+        }</span>
+}
+
+// // WithSongPostgresRepository ...
+// func WithSongPostgresRepository(connectionString string) CollectionConfiguration {
+//         return func(os *CollectionService) error {
+//                 pg, err := postgres.New(context.Background(), connectionString)
+//                 if err != nil {
+//                         return err
+//                 }
+
+//                 os.records = pg
+//                 return nil
+//         }
+// }
+
+// NewCollectionService ...
+func NewCollectionService(cfgs ...CollectionConfiguration) (*CollectionService, error) <span class="cov8" title="1">{
+        cs := &amp;CollectionService{}
+
+        for _, cfg := range cfgs </span><span class="cov8" title="1">{
+                err := cfg(cs)
+                if err != nil </span><span class="cov8" title="1">{
+                        return nil, err
+                }</span>
+        }
+
+        <span class="cov8" title="1">return cs, nil</span>
+}
+
+// AddRecord ...
+func (cs *CollectionService) AddRecord(name string, kind string) (record.PublicRecord, error) <span class="cov8" title="1">{
+        rec, err := record.NewRecord(name, kind)
+        if err != nil </span><span class="cov8" title="1">{
+                return (&amp;record.Record{}).ToPublic(), err
+        }</span>
+
+        <span class="cov8" title="1">switch kind </span>{
+        case "vinyl":<span class="cov8" title="1">
+                if err := cs.records.Add(rec); err != nil </span><span class="cov8" title="1">{
+                        return (&amp;record.Record{}).ToPublic(), err
+                }</span>
+
+                <span class="cov8" title="1">return rec.ToPublic(), nil</span>
+        case "mp3":<span class="cov8" title="1">
+                if err := cs.records.Add(rec); err != nil </span><span class="cov8" title="1">{
+                        return (&amp;record.Record{}).ToPublic(), err
+                }</span>
+
+                <span class="cov8" title="1">return rec.ToPublic(), nil</span>
+        }
+
+        <span class="cov8" title="1">return (&amp;record.Record{}).ToPublic(), ErrInvalidType</span>
+}
+
+// FindRecord ...
+func (cs *CollectionService) FindRecord(id string) (record.PublicRecord, error) <span class="cov8" title="1">{
+        uuidId := uuid.MustParse(id)
+        rec, err := cs.records.Get(uuidId)
+        if err != nil </span><span class="cov8" title="1">{
+                return (&amp;record.Record{}).ToPublic(), err
+        }</span>
+
+        <span class="cov8" title="1">return rec.ToPublic(), nil</span>
+}
+
+// AddSongToRecord ...
+func (cs *CollectionService) AddSongToRecord(record *record.Record, name string, length int64) error <span class="cov8" title="1">{
+        s, err := song.NewSong(name, length, record.GetID())
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        <span class="cov8" title="1">return record.AddSong(&amp;s)</span>
+}
+
+// FindAllRecord ...
+func (cs *CollectionService) FindAllRecord() ([]record.PublicRecord, error) <span class="cov8" title="1">{
+        records, err := cs.records.FindRecords()
+        if err != nil </span><span class="cov8" title="1">{
+                return []record.PublicRecord{}, err
+        }</span>
+
+        <span class="cov8" title="1">return record.ToPublicArray(records), nil</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>

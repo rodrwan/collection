@@ -1,6 +1,8 @@
 package memory
 
 import (
+	"context"
+	"reflect"
 	"testing"
 
 	"github.com/google/uuid"
@@ -91,6 +93,95 @@ func TestMemory_AddCustomer(t *testing.T) {
 			}
 			if found.GetID() != rec.GetID() {
 				t.Errorf("Expected %v, got %v", rec.GetID(), found.GetID())
+			}
+		})
+	}
+}
+
+func TestNew(t *testing.T) {
+	type args struct {
+		ctx context.Context
+	}
+	mr := &MemoryRepository{
+		records: make([]memoryRecord, 0),
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *MemoryRepository
+		wantErr bool
+	}{
+		{
+			name: "create new memory service",
+			args: args{
+				ctx: context.Background(),
+			},
+			want:    mr,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := New(tt.args.ctx)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("New() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMemoryRepository_FindRecords(t *testing.T) {
+	type fields struct {
+		records []memoryRecord
+	}
+
+	r1, _ := record.NewRecord("r1", "vinyl")
+	r2, _ := record.NewRecord("r2", "vinyl")
+	rr := []record.Record{
+		r1, r2,
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		want    []record.Record
+		wantErr bool
+	}{
+		{
+			name: "Find records",
+			fields: fields{
+				records: []memoryRecord{
+					{
+						ID:   r1.GetID(),
+						Name: r1.GetName(),
+						Kind: r1.GetKind(),
+					},
+					{
+						ID:   r2.GetID(),
+						Name: r2.GetName(),
+						Kind: r2.GetKind(),
+					},
+				},
+			},
+			want:    rr,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mr := &MemoryRepository{
+				records: tt.fields.records,
+			}
+			got, err := mr.FindRecords()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("MemoryRepository.FindRecords() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("MemoryRepository.FindRecords() = %v, want %v", got, tt.want)
 			}
 		})
 	}
