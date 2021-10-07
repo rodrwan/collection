@@ -11,6 +11,7 @@ require (
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/lib/pq v1.10.3 // indirect
 	github.com/percybolmer/ddd-go v0.0.0-20210904185238-be3efc77d92e
+	github.com/stretchr/testify v1.7.0 // indirect
 	github.com/valyala/fasthttp v1.30.0 // indirect
 	golang.org/x/sys v0.0.0-20211003122950-b1ebd4e1001c // indirect
 )

@@ -161,5 +161,6 @@ func (cs *CollectionService) FindAllRecord() ([]record.PublicRecord, error) {
 	if err != nil {
 		return []record.PublicRecord{}, err
 	}
+
 	return record.ToPublicArray(records), nil
 }

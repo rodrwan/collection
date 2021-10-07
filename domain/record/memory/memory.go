@@ -2,7 +2,6 @@ package memory
 
 import (
 	"context"
-	"log"
 	"sync"
 
 	"github.com/google/uuid"
@@ -63,7 +62,7 @@ func (mr *MemoryRepository) Get(id uuid.UUID) (record.Record, error) {
 func (mr *MemoryRepository) Add(r record.Record) error {
 	mr.Lock()
 	defer mr.Unlock()
-	log.Printf("Add record: %s\n", r.GetID().String())
+
 	internal := NewFromRecord(r)
 	mr.records = append(mr.records, internal)
 

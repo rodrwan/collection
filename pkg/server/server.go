@@ -32,7 +32,12 @@ func (srv Server) CreateRecord(c *fiber.Ctx) error {
 		Kind string
 	})
 
-	c.BodyParser(&params)
+	if err := c.BodyParser(&params); err != nil {
+		return c.Status(http.StatusUnprocessableEntity).JSON(fiber.Map{
+			"ok":    false,
+			"error": err.Error(),
+		})
+	}
 
 	record, err := srv.collectionService.AddRecord(params.Name, params.Kind)
 	if err != nil {
@@ -42,7 +47,7 @@ func (srv Server) CreateRecord(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(fiber.Map{
+	return c.Status(http.StatusCreated).JSON(fiber.Map{
 		"ok":     true,
 		"record": record,
 	})
@@ -51,15 +56,15 @@ func (srv Server) CreateRecord(c *fiber.Ctx) error {
 func (srv Server) GetRecords(c *fiber.Ctx) error {
 	records, err := srv.collectionService.FindAllRecord()
 	if err != nil {
-		return c.Status(http.StatusNotFound).JSON(fiber.Map{
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
 			"ok":    false,
-			"error": "Not Found",
+			"error": err.Error(),
 		})
 	}
 
 	return c.JSON(fiber.Map{
-		"ok":     true,
-		"record": records,
+		"ok":      true,
+		"records": records,
 	})
 }
 
@@ -96,7 +101,12 @@ func (srv Server) AddSongToRecord(c *fiber.Ctx) error {
 		Length int64
 	})
 
-	c.BodyParser(&params)
+	if err := c.BodyParser(&params); err != nil {
+		return c.Status(http.StatusUnprocessableEntity).JSON(fiber.Map{
+			"ok":    false,
+			"error": err.Error(),
+		})
+	}
 
 	if err := srv.collectionService.AddSongToRecord(record.ToRecord(), params.Name, params.Length); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{

@@ -39,7 +39,9 @@ func main() {
 
 		fmt.Println("Gracefully shutting down...")
 
-		app.Shutdown()
+		if err := app.Shutdown(); err != nil {
+			log.Fatal(err)
+		}
 		serverStopCtx()
 	}()
 
@@ -69,7 +71,9 @@ func main() {
 	api.Get("/records/:id", handlers.GetRecord)
 	api.Post("/records/:id/songs", handlers.AddSongToRecord)
 
-	app.Listen(":3000")
+	if err := app.Listen(":3000"); err != nil {
+		log.Fatal(err)
+	}
 	// Wait for server context to be stopped
 	<-serverCtx.Done()
 }
