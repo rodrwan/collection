@@ -1,6 +1,8 @@
 package memory
 
 import (
+	"context"
+	"reflect"
 	"testing"
 
 	"github.com/google/uuid"
@@ -98,6 +100,194 @@ func TestMemory_AddCustomer(t *testing.T) {
 			}
 			if found.GetID() != s.GetID() {
 				t.Errorf("Expected %v, got %v", s.GetID(), found.GetID())
+			}
+		})
+	}
+}
+
+func TestNew(t *testing.T) {
+	type args struct {
+		ctx context.Context
+	}
+	ctx := context.Background()
+	tests := []struct {
+		name    string
+		args    args
+		want    *MemoryRepository
+		wantErr bool
+	}{
+		{
+			name: "new memory service",
+			args: args{
+				ctx: ctx,
+			},
+			want: &MemoryRepository{
+				songs: make([]memorySong, 0),
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := New(tt.args.ctx)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("New() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMemoryRepository_FindRecords(t *testing.T) {
+	type fields struct {
+		songs []memorySong
+	}
+	id1 := uuid.New()
+	id2 := uuid.New()
+	id3 := uuid.New()
+
+	song1, _ := song.NewSongWithID(id1, "10", 10, id3)
+	song2, _ := song.NewSongWithID(id2, "20", 20, id3)
+	expectedSongs := []song.Song{
+		song1,
+		song2,
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		want    []song.Song
+		wantErr bool
+	}{
+		{
+			name: "Get 2 records with FindRecords",
+			fields: fields{
+				songs: []memorySong{
+					{
+						ID:       id1,
+						Name:     "10",
+						Length:   10,
+						RecordID: id3,
+					},
+					{
+						ID:       id2,
+						Name:     "20",
+						Length:   20,
+						RecordID: id3,
+					},
+				},
+			},
+			want:    expectedSongs,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mr := &MemoryRepository{
+				songs: tt.fields.songs,
+			}
+			got, err := mr.FindRecords()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("MemoryRepository.FindRecords() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("MemoryRepository.FindRecords() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMemoryRepository_Update(t *testing.T) {
+	type fields struct {
+		songs []memorySong
+	}
+	type args struct {
+		s *song.Song
+	}
+
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mr := &MemoryRepository{
+				songs: tt.fields.songs,
+			}
+			if err := mr.Update(tt.args.s); (err != nil) != tt.wantErr {
+				t.Errorf("MemoryRepository.Update() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestMemoryRepository_FindSongsByRecord(t *testing.T) {
+	type fields struct {
+		songs []memorySong
+	}
+	type args struct {
+		id uuid.UUID
+	}
+	id1 := uuid.New()
+	id2 := uuid.New()
+	id3 := uuid.New()
+
+	song1, _ := song.NewSongWithID(id1, "10", 10, id3)
+	song2, _ := song.NewSongWithID(id2, "20", 20, id3)
+	expectedSongs := []song.Song{
+		song1,
+		song2,
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    []song.Song
+		wantErr bool
+	}{
+		{
+			name: "Get songs by record id",
+			fields: fields{
+				songs: []memorySong{
+					{
+						ID:       id1,
+						Name:     "10",
+						Length:   10,
+						RecordID: id3,
+					},
+					{
+						ID:       id2,
+						Name:     "20",
+						Length:   20,
+						RecordID: id3,
+					},
+				},
+			},
+			args: args{
+				id: id3,
+			},
+			want:    expectedSongs,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mr := &MemoryRepository{
+				songs: tt.fields.songs,
+			}
+			got, err := mr.FindSongsByRecord(tt.args.id)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("MemoryRepository.FindSongsByRecord() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("MemoryRepository.FindSongsByRecord() = %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -66,6 +66,19 @@ func NewRecord(name, kind string) (Record, error) {
 	}, nil
 }
 
+func NewRecordWithID(id uuid.UUID, name, kind string) (Record, error) {
+	if name == "" {
+		return Record{}, ErrMissingValues
+	}
+
+	return Record{
+		id:    id,
+		name:  name,
+		kind:  kind,
+		songs: make([]*song.Song, 0),
+	}, nil
+}
+
 func (r *Record) AddSong(song *song.Song) error {
 	r.songs = append(r.songs, song)
 

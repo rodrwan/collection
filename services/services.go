@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/rodrwan/collection/domain/record"
 	"github.com/rodrwan/collection/domain/record/memory"
+	rmock "github.com/rodrwan/collection/domain/record/mock"
 	"github.com/rodrwan/collection/domain/record/postgres"
 	"github.com/rodrwan/collection/domain/song"
 	smemory "github.com/rodrwan/collection/domain/song/memory"
@@ -79,6 +80,24 @@ func WithSongMemoryRepository() CollectionConfiguration {
 
 		os.songs = mem
 		return nil
+	}
+}
+
+// WithFakeRecordService ...
+func WithFakeRecordService(withError bool, id uuid.UUID) CollectionConfiguration {
+	return func(os *CollectionService) error {
+		os.records = rmock.MockRecordRepository{
+			WithError: withError,
+			RecordId:  id,
+		}
+
+		return nil
+	}
+}
+
+func WithError() CollectionConfiguration {
+	return func(os *CollectionService) error {
+		return errors.New("with error")
 	}
 }
 

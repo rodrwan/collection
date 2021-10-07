@@ -30,6 +30,19 @@ func NewSong(name string, length int64, recordID uuid.UUID) (Song, error) {
 	}, nil
 }
 
+func NewSongWithID(id uuid.UUID, name string, length int64, recordID uuid.UUID) (Song, error) {
+	if name == "" {
+		return Song{}, ErrMissingValues
+	}
+
+	return Song{
+		id:       id,
+		name:     name,
+		length:   length,
+		recordID: recordID,
+	}, nil
+}
+
 func (s Song) GetID() uuid.UUID {
 	return s.id
 }
