@@ -176,12 +176,12 @@ func TestMemoryRepository_FindRecords(t *testing.T) {
 				records: tt.fields.records,
 			}
 			got, err := mr.FindRecords()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("MemoryRepository.FindRecords() error = %v, wantErr %v", err, tt.wantErr)
+			if err != nil {
+				t.Errorf("Record err MemoryRepository.FindRecords() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("MemoryRepository.FindRecords() = %v, want %v", got, tt.want)
+			if !reflect.DeepEqual(got[0].GetID(), tt.want[0].GetID()) {
+				t.Errorf("Record no equal MemoryRepository.FindRecords() = %v, want %v", got, tt.want)
 			}
 		})
 	}

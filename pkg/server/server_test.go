@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -16,6 +15,37 @@ import (
 	"github.com/rodrwan/collection/services"
 	"github.com/stretchr/testify/assert"
 )
+
+var serverConfig = fiber.Config{
+	// Override default error handler
+	ErrorHandler: func(ctx *fiber.Ctx, err error) error {
+		// Status code defaults to 500
+		code := fiber.StatusInternalServerError
+		msg := ""
+		if e, ok := err.(*fiber.Error); ok {
+			code = e.Code
+			msg = e.Message
+		}
+
+		log.Println(code)
+		log.Println(msg)
+		// Send custom error page
+		err = ctx.Status(code).JSON(fiber.Map{
+			"ok":    false,
+			"error": msg,
+		})
+		if err != nil {
+			// In case the SendFile fails
+			return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"ok":    false,
+				"error": "Internal server error",
+			})
+		}
+
+		// Return from handler
+		return nil
+	},
+}
 
 func TestServer_NewServer(t *testing.T) {
 	type testCase struct {
@@ -68,7 +98,7 @@ func TestServer_CreateRecord(t *testing.T) {
 			description:   "get HTTP status 201 on record creation",
 			route:         "/records",
 			data:          []byte(`{ "name": "lala", "kind": "vinyl"}`),
-			method:        http.MethodPost,
+			method:        fiber.MethodPost,
 			expectedCode:  201,
 			expectedOk:    true,
 			expectedError: "",
@@ -77,7 +107,7 @@ func TestServer_CreateRecord(t *testing.T) {
 			description:   "get HTTP status 400 when create a record with empty body",
 			route:         "/records",
 			data:          []byte(`{}`),
-			method:        http.MethodPost,
+			method:        fiber.MethodPost,
 			expectedCode:  400,
 			expectedOk:    false,
 			expectedError: "missing value",
@@ -86,7 +116,7 @@ func TestServer_CreateRecord(t *testing.T) {
 			description:   "get HTTP status 400 when create a record with missing record type",
 			route:         "/records",
 			data:          []byte(`{ "name": "lala" }`),
-			method:        http.MethodPost,
+			method:        fiber.MethodPost,
 			expectedCode:  400,
 			expectedOk:    false,
 			expectedError: "Invalid record type",
@@ -95,7 +125,7 @@ func TestServer_CreateRecord(t *testing.T) {
 			description:   "get HTTP status 422 when create a record with missing record type",
 			route:         "/records",
 			data:          []byte(``),
-			method:        http.MethodPost,
+			method:        fiber.MethodPost,
 			expectedCode:  422,
 			expectedOk:    false,
 			expectedError: "json: unexpected end of JSON input: ",
@@ -161,7 +191,7 @@ func TestServer_GetRecords(t *testing.T) {
 		{
 			description:  "get HTTP status 200",
 			route:        "/records",
-			method:       http.MethodGet,
+			method:       fiber.MethodGet,
 			expectedCode: 200,
 		},
 	}
@@ -206,7 +236,7 @@ func TestServer_GetRecordsWithRecords(t *testing.T) {
 		{
 			description:     "get HTTP status 200",
 			route:           "/records",
-			method:          http.MethodGet,
+			method:          fiber.MethodGet,
 			expectedCode:    200,
 			expectedOk:      true,
 			expectedRecords: 2,
@@ -279,7 +309,7 @@ func TestServer_GetRecordWithEmptyStore(t *testing.T) {
 		{
 			description:  "get HTTP status 200",
 			route:        fmt.Sprintf("/records/%s", id),
-			method:       http.MethodGet,
+			method:       fiber.MethodGet,
 			expectedCode: 404,
 			expectedOk:   true,
 		},
@@ -324,7 +354,7 @@ func TestServer_GetRecordWithRecords(t *testing.T) {
 		{
 			description:  "get HTTP status 200",
 			route:        "/records",
-			method:       http.MethodGet,
+			method:       fiber.MethodGet,
 			expectedCode: 200,
 			expectedOk:   true,
 		},
@@ -358,7 +388,7 @@ func TestServer_GetRecordWithRecords(t *testing.T) {
 }
 
 func TestServer_AddSongToExistingRecord(t *testing.T) {
-	app := fiber.New()
+	app := fiber.New(serverConfig)
 	collectionService, err := services.NewCollectionService(
 		services.WithRecordMemoryRepository(),
 		services.WithSongMemoryRepository(),
@@ -387,7 +417,7 @@ func TestServer_AddSongToExistingRecord(t *testing.T) {
 		{
 			description:  "get HTTP status 200",
 			route:        fmt.Sprintf("/records/%s", rec.ID.String()),
-			method:       http.MethodPost,
+			method:       fiber.MethodPost,
 			expectedCode: 200,
 			expectedOk:   true,
 			data:         []byte(`{ "name": "lala", "length": 100 }`),
@@ -395,7 +425,7 @@ func TestServer_AddSongToExistingRecord(t *testing.T) {
 		{
 			description:  "get HTTP status 400",
 			route:        fmt.Sprintf("/records/%s", uuid.New().String()),
-			method:       http.MethodPost,
+			method:       fiber.MethodPost,
 			expectedCode: 400,
 			expectedOk:   false,
 			data:         []byte(`{ "name": "lala", "length": 100 }`),
@@ -403,7 +433,7 @@ func TestServer_AddSongToExistingRecord(t *testing.T) {
 		{
 			description:   "get HTTP status 422",
 			route:         fmt.Sprintf("/records/%s", rec.ID.String()),
-			method:        http.MethodPost,
+			method:        fiber.MethodPost,
 			expectedCode:  422,
 			expectedOk:    false,
 			data:          []byte(``),
@@ -429,12 +459,15 @@ func TestServer_AddSongToExistingRecord(t *testing.T) {
 
 		body, _ := ioutil.ReadAll(resp.Body)
 		if err != nil {
+			log.Println("lala")
 			log.Fatal(err)
 
 		}
 
+		log.Println(string(body))
 		var r response
 		if err := json.Unmarshal(body, &r); err != nil {
+			log.Println("lalo")
 			log.Fatal(err)
 		}
 

@@ -166,16 +166,14 @@ func TestMemoryRepository_FindRecords(t *testing.T) {
 			fields: fields{
 				songs: []memorySong{
 					{
-						ID:       id1,
-						Name:     "10",
-						Length:   10,
-						RecordID: id3,
+						ID:     id1,
+						Name:   "10",
+						Length: 10,
 					},
 					{
-						ID:       id2,
-						Name:     "20",
-						Length:   20,
-						RecordID: id3,
+						ID:     id2,
+						Name:   "20",
+						Length: 20,
 					},
 				},
 			},
@@ -189,12 +187,12 @@ func TestMemoryRepository_FindRecords(t *testing.T) {
 				songs: tt.fields.songs,
 			}
 			got, err := mr.FindRecords()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("MemoryRepository.FindRecords() error = %v, wantErr %v", err, tt.wantErr)
+			if err != nil {
+				t.Errorf("Song MemoryRepository.FindRecords() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("MemoryRepository.FindRecords() = %v, want %v", got, tt.want)
+			if !reflect.DeepEqual(got[0].GetID(), tt.want[0].GetID()) {
+				t.Errorf("Song MemoryRepository.FindRecords() = %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -2,7 +2,7 @@ package server
 
 import (
 	"errors"
-	"net/http"
+	"log"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/rodrwan/collection/services"
@@ -33,7 +33,7 @@ func (srv Server) CreateRecord(c *fiber.Ctx) error {
 	})
 
 	if err := c.BodyParser(&params); err != nil {
-		return c.Status(http.StatusUnprocessableEntity).JSON(fiber.Map{
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
 			"ok":    false,
 			"error": err.Error(),
 		})
@@ -41,13 +41,13 @@ func (srv Server) CreateRecord(c *fiber.Ctx) error {
 
 	record, err := srv.collectionService.AddRecord(params.Name, params.Kind)
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"ok":    false,
 			"error": err.Error(),
 		})
 	}
 
-	return c.Status(http.StatusCreated).JSON(fiber.Map{
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"ok":     true,
 		"record": record,
 	})
@@ -56,10 +56,7 @@ func (srv Server) CreateRecord(c *fiber.Ctx) error {
 func (srv Server) GetRecords(c *fiber.Ctx) error {
 	records, err := srv.collectionService.FindAllRecord()
 	if err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
-			"ok":    false,
-			"error": err.Error(),
-		})
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
 	return c.JSON(fiber.Map{
@@ -73,10 +70,7 @@ func (srv Server) GetRecord(c *fiber.Ctx) error {
 
 	record, err := srv.collectionService.FindRecord(id)
 	if err != nil {
-		return c.Status(http.StatusNotFound).JSON(fiber.Map{
-			"ok":    false,
-			"error": "Not Found",
-		})
+		return fiber.NewError(fiber.StatusNotFound, "Not found")
 	}
 
 	return c.JSON(fiber.Map{
@@ -90,10 +84,8 @@ func (srv Server) AddSongToRecord(c *fiber.Ctx) error {
 
 	record, err := srv.collectionService.FindRecord(id)
 	if err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
-			"ok":    false,
-			"error": err.Error(),
-		})
+		log.Println("ADDSONGTORECORD", err.Error())
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
 	params := new(struct {
@@ -102,17 +94,11 @@ func (srv Server) AddSongToRecord(c *fiber.Ctx) error {
 	})
 
 	if err := c.BodyParser(&params); err != nil {
-		return c.Status(http.StatusUnprocessableEntity).JSON(fiber.Map{
-			"ok":    false,
-			"error": err.Error(),
-		})
+		return fiber.NewError(fiber.StatusUnprocessableEntity, err.Error())
 	}
 
 	if err := srv.collectionService.AddSongToRecord(record.ToRecord(), params.Name, params.Length); err != nil {
-		return c.Status(http.StatusBadRequest).JSON(fiber.Map{
-			"ok":    false,
-			"error": err.Error(),
-		})
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
 	return c.JSON(fiber.Map{
