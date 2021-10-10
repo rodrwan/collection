@@ -55,9 +55,9 @@ func WithRecordMemoryRepository() CollectionConfiguration {
 }
 
 // WithRecordPostgresRepository ...
-func WithRecordPostgresRepository(connectionString string) CollectionConfiguration {
+func WithRecordPostgresRepository(connectionString string, connect postgres.SqlOpener) CollectionConfiguration {
 	return func(os *CollectionService) error {
-		pg, err := postgres.New(context.Background(), connectionString)
+		pg, err := postgres.New(context.Background(), connectionString, connect)
 		if err != nil {
 			log.Fatal(err)
 			return err
@@ -129,8 +129,8 @@ func NewCollectionService(cfgs ...CollectionConfiguration) (*CollectionService, 
 }
 
 // AddRecord ...
-func (cs *CollectionService) AddRecord(name string, kind string) (record.PublicRecord, error) {
-	rec, err := record.NewRecord(name, kind)
+func (cs *CollectionService) AddRecord(id uuid.UUID, name string, kind string) (record.PublicRecord, error) {
+	rec, err := record.NewRecordWithID(id, name, kind)
 	if err != nil {
 		return (&record.Record{}).ToPublic(), err
 	}
@@ -171,7 +171,7 @@ func (cs *CollectionService) AddSongToRecord(record *record.Record, name string,
 		return err
 	}
 
-	return record.AddSong(&s)
+	return cs.records.AddSong(record.GetID(), &s)
 }
 
 // FindAllRecord ...

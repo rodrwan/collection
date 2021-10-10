@@ -5,7 +5,9 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
 	"github.com/rodrwan/collection/domain/record"
 	"github.com/rodrwan/collection/services"
 	"github.com/stretchr/testify/assert"
@@ -13,6 +15,7 @@ import (
 
 func TestCollectionService_AddRecord(t *testing.T) {
 	type args struct {
+		id   uuid.UUID
 		name string
 		kind string
 	}
@@ -117,7 +120,7 @@ func TestCollectionService_AddRecord(t *testing.T) {
 				test.services...,
 			)
 
-			got, err := cs.AddRecord(test.args.name, test.args.kind)
+			got, err := cs.AddRecord(test.args.id, test.args.name, test.args.kind)
 			if err != nil {
 				assert.Equalf(t, test.expectedErr.Error(), err.Error(), test.description)
 				return
@@ -310,6 +313,70 @@ func TestNewCollectionService(t *testing.T) {
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewCollectionService() = %v, want %v", got, tt.want)
 			}
+		})
+	}
+}
+
+func TestCollectionService_AddRecordWithPostgres(t *testing.T) {
+	type args struct {
+		id   uuid.UUID
+		name string
+		kind string
+	}
+
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+
+	id := uuid.New()
+	mock.ExpectExec("INSERT INTO records").
+		WithArgs(id.String(), "lala", "vinyl").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	opener := func(provider string, conn string) (*sqlx.DB, error) {
+		return sqlx.NewDb(db, provider), nil
+	}
+
+	tests := []struct {
+		id          uuid.UUID
+		name        string
+		description string
+		args        args
+		want        record.PublicRecord
+		services    []services.CollectionConfiguration
+		expectedErr error
+	}{
+		{
+			name:        "Vinyl",
+			description: "",
+			args:        args{id: id, name: "lala", kind: "vinyl"},
+			want: record.PublicRecord{
+				ID:   id,
+				Name: "lala",
+				Kind: "vinyl",
+			},
+			expectedErr: nil,
+			services: []services.CollectionConfiguration{
+				services.WithRecordPostgresRepository("hello", opener),
+				services.WithSongMemoryRepository(),
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cs, _ := services.NewCollectionService(
+				test.services...,
+			)
+
+			got, err := cs.AddRecord(test.args.id, test.args.name, test.args.kind)
+			if err != nil {
+				assert.Equalf(t, test.expectedErr.Error(), err.Error(), test.description)
+				return
+			}
+
+			assert.Equalf(t, test.want.Kind, got.Kind, test.description)
 		})
 	}
 }

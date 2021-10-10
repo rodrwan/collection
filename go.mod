@@ -3,6 +3,7 @@ module github.com/rodrwan/collection
 go 1.14
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.0 // indirect
 	github.com/andybalholm/brotli v1.0.3 // indirect
 	github.com/gofiber/fiber/v2 v2.19.0
 	github.com/gofiber/helmet/v2 v2.2.2 // indirect

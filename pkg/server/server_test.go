@@ -66,7 +66,7 @@ func TestServer_CreateRecord(t *testing.T) {
 	}{
 		{
 			description:   "get HTTP status 201 on record creation",
-			route:         "/records",
+			route:         "/CreateRecord",
 			data:          []byte(`{ "name": "lala", "kind": "vinyl"}`),
 			method:        fiber.MethodPost,
 			expectedCode:  201,
@@ -75,7 +75,7 @@ func TestServer_CreateRecord(t *testing.T) {
 		},
 		{
 			description:   "get HTTP status 400 when create a record with empty body",
-			route:         "/records",
+			route:         "/CreateRecord",
 			data:          []byte(`{}`),
 			method:        fiber.MethodPost,
 			expectedCode:  400,
@@ -84,7 +84,7 @@ func TestServer_CreateRecord(t *testing.T) {
 		},
 		{
 			description:   "get HTTP status 400 when create a record with missing record type",
-			route:         "/records",
+			route:         "/CreateRecord",
 			data:          []byte(`{ "name": "lala" }`),
 			method:        fiber.MethodPost,
 			expectedCode:  400,
@@ -93,7 +93,7 @@ func TestServer_CreateRecord(t *testing.T) {
 		},
 		{
 			description:   "get HTTP status 422 when create a record with missing record type",
-			route:         "/records",
+			route:         "/CreateRecord",
 			data:          []byte(``),
 			method:        fiber.MethodPost,
 			expectedCode:  422,
@@ -116,7 +116,7 @@ func TestServer_CreateRecord(t *testing.T) {
 	}
 
 	// Create route with GET method for test
-	app.Post("/records", srv.CreateRecord)
+	app.Post("/CreateRecord", srv.CreateRecord)
 
 	type response struct {
 		Ok     bool        `json:"ok,omitempty"`
@@ -135,7 +135,6 @@ func TestServer_CreateRecord(t *testing.T) {
 			body, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
 				log.Fatal(err)
-
 			}
 
 			var r response
@@ -156,32 +155,47 @@ func TestServer_GetRecords(t *testing.T) {
 		route        string // route path to test
 		method       string
 		expectedCode int // expected HTTP status code
+		services     []services.CollectionConfiguration
 	}{
 		// First test case
 		{
 			description:  "get HTTP status 200",
-			route:        "/records",
+			route:        "/GetRecords",
 			method:       fiber.MethodGet,
 			expectedCode: 200,
+			services: []services.CollectionConfiguration{
+				services.WithRecordMemoryRepository(),
+				services.WithSongMemoryRepository(),
+			},
+		},
+		// First test case
+		{
+			description:  "get HTTP status 500",
+			route:        "/GetRecords",
+			method:       fiber.MethodGet,
+			expectedCode: 500,
+			services: []services.CollectionConfiguration{
+				services.WithFakeRecordService(true, uuid.Nil),
+				services.WithSongMemoryRepository(),
+			},
 		},
 	}
 
-	app := fiber.New()
-	collectionService, err := services.NewCollectionService(
-		services.WithRecordMemoryRepository(),
-		services.WithSongMemoryRepository(),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	srv, err := server.NewServer(collectionService)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	app.Get("/records", srv.GetRecords)
-
 	for _, test := range tests {
+		app := fiber.New()
+		collectionService, err := services.NewCollectionService(
+			test.services...,
+		)
+		if err != nil {
+			log.Fatal(err)
+		}
+		srv, err := server.NewServer(collectionService)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		app.Get("/GetRecords", srv.GetRecords)
+
 		req := httptest.NewRequest(test.method, test.route, nil)
 		resp, err := app.Test(req, 1)
 		if err != nil {
@@ -205,7 +219,7 @@ func TestServer_GetRecordsWithRecords(t *testing.T) {
 		// First test case
 		{
 			description:     "get HTTP status 200",
-			route:           "/records",
+			route:           "/GetRecords",
 			method:          fiber.MethodGet,
 			expectedCode:    200,
 			expectedOk:      true,
@@ -222,15 +236,17 @@ func TestServer_GetRecordsWithRecords(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	collectionService.AddRecord("test", "vinyl")
-	collectionService.AddRecord("test1", "vinyl")
+	id1 := uuid.New()
+	collectionService.AddRecord(id1, "test", "vinyl")
+	id2 := uuid.New()
+	collectionService.AddRecord(id2, "test1", "vinyl")
 
 	srv, err := server.NewServer(collectionService)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	app.Get("/records", srv.GetRecords)
+	app.Get("/GetRecords", srv.GetRecords)
 
 	type response struct {
 		Ok      bool `json:"ok,omitempty"`
@@ -278,7 +294,7 @@ func TestServer_GetRecordWithEmptyStore(t *testing.T) {
 		// First test case
 		{
 			description:  "get HTTP status 200",
-			route:        fmt.Sprintf("/records/%s", id),
+			route:        fmt.Sprintf("/GetRecordById/%s", id),
 			method:       fiber.MethodGet,
 			expectedCode: 404,
 			expectedOk:   true,
@@ -298,7 +314,7 @@ func TestServer_GetRecordWithEmptyStore(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	app.Get("/records/:id", srv.GetRecordById)
+	app.Get("/GetRecordById/:id", srv.GetRecordById)
 
 	for _, test := range tests {
 		req := httptest.NewRequest(test.method, test.route, nil)
@@ -323,7 +339,7 @@ func TestServer_GetRecordWithRecords(t *testing.T) {
 		// First test case
 		{
 			description:  "get HTTP status 200",
-			route:        "/records",
+			route:        "/GetRecordById",
 			method:       fiber.MethodGet,
 			expectedCode: 200,
 			expectedOk:   true,
@@ -342,9 +358,10 @@ func TestServer_GetRecordWithRecords(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	rec, _ := collectionService.AddRecord("test", "vinyl")
+	id1 := uuid.New()
+	rec, _ := collectionService.AddRecord(id1, "test", "vinyl")
 
-	app.Get("/records/:id", srv.GetRecordById)
+	app.Get("/GetRecordById/:id", srv.GetRecordById)
 
 	for _, test := range tests {
 		req := httptest.NewRequest(test.method, fmt.Sprintf("%s/%s", test.route, rec.ID.String()), nil)
@@ -358,22 +375,12 @@ func TestServer_GetRecordWithRecords(t *testing.T) {
 }
 
 func TestServer_AddSongToExistingRecord(t *testing.T) {
-	app := fiber.New(config.NewFiberConfig)
-	collectionService, err := services.NewCollectionService(
-		services.WithRecordMemoryRepository(),
-		services.WithSongMemoryRepository(),
-	)
-	if err != nil {
-		log.Fatal(err)
+	type args struct {
+		id   uuid.UUID
+		name string
+		kind string
 	}
-	srv, err := server.NewServer(collectionService)
-	if err != nil {
-		log.Fatal(err)
-	}
-	rec, _ := collectionService.AddRecord("test", "vinyl")
-
-	app.Post("/records/:id", srv.AddSongToRecordById)
-
+	id := uuid.New()
 	tests := []struct {
 		description   string // description of the test case
 		route         string // route path to test
@@ -382,32 +389,87 @@ func TestServer_AddSongToExistingRecord(t *testing.T) {
 		expectedCode  int    // expected HTTP status code
 		expectedOk    bool   // expected ok messaje
 		expectedError string // expected error message messaje
+		services      []services.CollectionConfiguration
+		args          []args
 	}{
 		// First test case
 		{
 			description:  "get HTTP status 200",
-			route:        fmt.Sprintf("/records/%s", rec.ID.String()),
+			route:        fmt.Sprintf("/AddSongToRecordById/%s", id.String()),
 			method:       fiber.MethodPost,
 			expectedCode: 200,
 			expectedOk:   true,
 			data:         []byte(`{ "name": "lala", "length": 100 }`),
+			services: []services.CollectionConfiguration{
+				services.WithRecordMemoryRepository(),
+				services.WithSongMemoryRepository(),
+			},
+			args: []args{
+				{
+					id:   id,
+					name: "lala",
+					kind: "vinyl",
+				},
+			},
 		},
 		{
 			description:  "get HTTP status 400",
-			route:        fmt.Sprintf("/records/%s", uuid.New().String()),
+			route:        fmt.Sprintf("/AddSongToRecordById/%s", uuid.New().String()),
 			method:       fiber.MethodPost,
 			expectedCode: 400,
 			expectedOk:   false,
 			data:         []byte(`{ "name": "lala", "length": 100 }`),
+			services: []services.CollectionConfiguration{
+				services.WithRecordMemoryRepository(),
+				services.WithSongMemoryRepository(),
+			},
+			args: []args{
+				{
+					id:   id,
+					name: "lala",
+					kind: "vinyl",
+				},
+			},
 		},
 		{
 			description:   "get HTTP status 422",
-			route:         fmt.Sprintf("/records/%s", rec.ID.String()),
+			route:         fmt.Sprintf("/AddSongToRecordById/%s", id.String()),
 			method:        fiber.MethodPost,
 			expectedCode:  422,
 			expectedOk:    false,
 			data:          []byte(``),
 			expectedError: "json: unexpected end of JSON input: ",
+			services: []services.CollectionConfiguration{
+				services.WithRecordMemoryRepository(),
+				services.WithSongMemoryRepository(),
+			},
+			args: []args{
+				{
+					id:   id,
+					name: "lala",
+					kind: "vinyl",
+				},
+			},
+		},
+		{
+			description:   "get HTTP status 400",
+			route:         fmt.Sprintf("/AddSongToRecordById/%s", id.String()),
+			method:        fiber.MethodPost,
+			expectedCode:  400,
+			expectedOk:    false,
+			data:          []byte(``),
+			expectedError: "json: unexpected end of JSON input: ",
+			services: []services.CollectionConfiguration{
+				services.WithFakeRecordService(true, id),
+				services.WithSongMemoryRepository(),
+			},
+			args: []args{
+				{
+					id:   id,
+					name: "lala",
+					kind: "vinyl",
+				},
+			},
 		},
 	}
 
@@ -422,26 +484,45 @@ func TestServer_AddSongToExistingRecord(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		req := httptest.NewRequest(test.method, test.route, bytes.NewBuffer(test.data))
-		req.Header.Set("Content-Type", "application/json")
-		resp, _ := app.Test(req, 1000)
-		defer resp.Body.Close()
+		t.Run(test.description, func(t *testing.T) {
+			app := fiber.New(config.NewFiberConfig)
+			collectionService, err := services.NewCollectionService(
+				test.services...,
+			)
+			if err != nil {
+				log.Fatal(err)
+			}
+			srv, err := server.NewServer(collectionService)
+			if err != nil {
+				log.Fatal(err)
+			}
 
-		body, _ := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			log.Println("lala")
-			log.Fatal(err)
+			for _, arg := range test.args {
+				collectionService.AddRecord(arg.id, arg.name, arg.kind)
+			}
 
-		}
+			app.Post("/AddSongToRecordById/:id", srv.AddSongToRecordById)
 
-		log.Println(string(body))
-		var r response
-		if err := json.Unmarshal(body, &r); err != nil {
-			log.Println("lalo")
-			log.Fatal(err)
-		}
+			req := httptest.NewRequest(test.method, test.route, bytes.NewBuffer(test.data))
+			req.Header.Set("Content-Type", "application/json")
 
-		assert.Equalf(t, test.expectedCode, resp.StatusCode, test.description)
-		assert.Equalf(t, test.expectedOk, r.Ok, test.description)
+			resp, _ := app.Test(req, 1000)
+			defer resp.Body.Close()
+
+			body, _ := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				log.Fatal(err)
+
+			}
+
+			var r response
+			if err := json.Unmarshal(body, &r); err != nil {
+				log.Fatal(err)
+			}
+
+			assert.Equalf(t, test.expectedCode, resp.StatusCode, test.description)
+			assert.Equalf(t, test.expectedOk, r.Ok, test.description)
+			app.Shutdown()
+		})
 	}
 }

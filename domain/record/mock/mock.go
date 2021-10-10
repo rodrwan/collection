@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/rodrwan/collection/domain/record"
+	"github.com/rodrwan/collection/domain/song"
 )
 
 // MOCKS
@@ -43,4 +44,12 @@ func (mrr MockRecordRepository) FindRecords() ([]record.Record, error) {
 	}
 
 	return []record.Record{}, nil
+}
+
+func (mrr MockRecordRepository) AddSong(id uuid.UUID, s *song.Song) error {
+	if mrr.WithError {
+		return errors.New("something went wrong")
+	}
+
+	return nil
 }

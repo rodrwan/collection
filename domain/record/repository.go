@@ -2,6 +2,7 @@ package record
 
 import (
 	"github.com/google/uuid"
+	"github.com/rodrwan/collection/domain/song"
 )
 
 type RecordRepository interface {
@@ -9,4 +10,5 @@ type RecordRepository interface {
 	Add(Record) error
 	Update(*Record) error
 	FindRecords() ([]Record, error)
+	AddSong(uuid.UUID, *song.Song) error
 }

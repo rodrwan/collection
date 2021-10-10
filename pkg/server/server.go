@@ -2,9 +2,9 @@ package server
 
 import (
 	"errors"
-	"log"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	"github.com/rodrwan/collection/services"
 )
 
@@ -39,7 +39,8 @@ func (srv Server) CreateRecord(c *fiber.Ctx) error {
 		})
 	}
 
-	record, err := srv.collectionService.AddRecord(params.Name, params.Kind)
+	id := uuid.New()
+	record, err := srv.collectionService.AddRecord(id, params.Name, params.Kind)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"ok":    false,
@@ -84,7 +85,6 @@ func (srv Server) AddSongToRecordById(c *fiber.Ctx) error {
 
 	record, err := srv.collectionService.FindRecord(id)
 	if err != nil {
-		log.Println("ADDSONGTORECORD", err.Error())
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 

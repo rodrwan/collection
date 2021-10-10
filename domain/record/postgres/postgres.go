@@ -7,11 +7,16 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/rodrwan/collection/domain/record"
+	"github.com/rodrwan/collection/domain/song"
 )
 
 type PostgresRepository struct {
 	db *sqlx.DB
 }
+
+type (
+	SqlOpener func(string, string) (*sqlx.DB, error)
+)
 
 // mongoCustomer is an internal type that is used to store a CustomerAggregate
 // we make an internal struct for this to avoid coupling this mongo implementation to the customeraggregate.
@@ -42,8 +47,8 @@ func (pr postgresRecord) ToRecord() record.Record {
 }
 
 // Create a new mongodb repository
-func New(ctx context.Context, connectionString string) (*PostgresRepository, error) {
-	client, err := sqlx.Connect("postgres", connectionString)
+func New(ctx context.Context, connectionString string, open SqlOpener) (*PostgresRepository, error) {
+	client, err := open("postgres", connectionString)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +81,7 @@ func (mr *PostgresRepository) Add(r record.Record) error {
 	defer cancel()
 
 	internal := NewFromRecord(r)
-	_, err := mr.db.NamedExecContext(ctx, `INSERT INTO records (id,name, kind) VALUES (:id, :name, :kind, :email)`, internal)
+	_, err := mr.db.NamedExecContext(ctx, `INSERT INTO records (id, name, kind) VALUES (:id, :name, :kind)`, internal)
 	if err != nil {
 		return err
 	}
@@ -103,5 +108,9 @@ func (mr *PostgresRepository) FindRecords() ([]record.Record, error) {
 }
 
 func (mr *PostgresRepository) Update(r *record.Record) error {
+	panic("to implement")
+}
+
+func (mr *PostgresRepository) AddSong(id uuid.UUID, s *song.Song) error {
 	panic("to implement")
 }

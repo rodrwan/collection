@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/rodrwan/collection/domain/record"
+	"github.com/rodrwan/collection/domain/song"
 )
 
 type MemoryRepository struct {
@@ -84,4 +85,8 @@ func (mr *MemoryRepository) FindRecords() ([]record.Record, error) {
 
 func (mr *MemoryRepository) Update(r *record.Record) error {
 	panic("to implement")
+}
+
+func (mr *MemoryRepository) AddSong(id uuid.UUID, s *song.Song) error {
+	return nil
 }
