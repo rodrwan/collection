@@ -65,7 +65,7 @@ func (srv Server) GetRecords(c *fiber.Ctx) error {
 	})
 }
 
-func (srv Server) GetRecord(c *fiber.Ctx) error {
+func (srv Server) GetRecordById(c *fiber.Ctx) error {
 	id := c.Params("id")
 
 	record, err := srv.collectionService.FindRecord(id)
@@ -79,7 +79,7 @@ func (srv Server) GetRecord(c *fiber.Ctx) error {
 	})
 }
 
-func (srv Server) AddSongToRecord(c *fiber.Ctx) error {
+func (srv Server) AddSongToRecordById(c *fiber.Ctx) error {
 	id := c.Params("id")
 
 	record, err := srv.collectionService.FindRecord(id)

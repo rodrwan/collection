@@ -11,41 +11,11 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"github.com/rodrwan/collection/config"
 	"github.com/rodrwan/collection/pkg/server"
 	"github.com/rodrwan/collection/services"
 	"github.com/stretchr/testify/assert"
 )
-
-var serverConfig = fiber.Config{
-	// Override default error handler
-	ErrorHandler: func(ctx *fiber.Ctx, err error) error {
-		// Status code defaults to 500
-		code := fiber.StatusInternalServerError
-		msg := ""
-		if e, ok := err.(*fiber.Error); ok {
-			code = e.Code
-			msg = e.Message
-		}
-
-		log.Println(code)
-		log.Println(msg)
-		// Send custom error page
-		err = ctx.Status(code).JSON(fiber.Map{
-			"ok":    false,
-			"error": msg,
-		})
-		if err != nil {
-			// In case the SendFile fails
-			return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"ok":    false,
-				"error": "Internal server error",
-			})
-		}
-
-		// Return from handler
-		return nil
-	},
-}
 
 func TestServer_NewServer(t *testing.T) {
 	type testCase struct {
@@ -328,7 +298,7 @@ func TestServer_GetRecordWithEmptyStore(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	app.Get("/records/:id", srv.GetRecord)
+	app.Get("/records/:id", srv.GetRecordById)
 
 	for _, test := range tests {
 		req := httptest.NewRequest(test.method, test.route, nil)
@@ -374,7 +344,7 @@ func TestServer_GetRecordWithRecords(t *testing.T) {
 	}
 	rec, _ := collectionService.AddRecord("test", "vinyl")
 
-	app.Get("/records/:id", srv.GetRecord)
+	app.Get("/records/:id", srv.GetRecordById)
 
 	for _, test := range tests {
 		req := httptest.NewRequest(test.method, fmt.Sprintf("%s/%s", test.route, rec.ID.String()), nil)
@@ -388,7 +358,7 @@ func TestServer_GetRecordWithRecords(t *testing.T) {
 }
 
 func TestServer_AddSongToExistingRecord(t *testing.T) {
-	app := fiber.New(serverConfig)
+	app := fiber.New(config.NewFiberConfig)
 	collectionService, err := services.NewCollectionService(
 		services.WithRecordMemoryRepository(),
 		services.WithSongMemoryRepository(),
@@ -402,7 +372,7 @@ func TestServer_AddSongToExistingRecord(t *testing.T) {
 	}
 	rec, _ := collectionService.AddRecord("test", "vinyl")
 
-	app.Post("/records/:id", srv.AddSongToRecord)
+	app.Post("/records/:id", srv.AddSongToRecordById)
 
 	tests := []struct {
 		description   string // description of the test case
