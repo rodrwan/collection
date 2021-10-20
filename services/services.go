@@ -119,8 +119,7 @@ func NewCollectionService(cfgs ...CollectionConfiguration) (*CollectionService, 
 	cs := &CollectionService{}
 
 	for _, cfg := range cfgs {
-		err := cfg(cs)
-		if err != nil {
+		if err := cfg(cs); err != nil {
 			return nil, err
 		}
 	}

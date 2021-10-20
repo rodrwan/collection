@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -9,6 +10,26 @@ import (
 	"github.com/rodrwan/collection/domain/record"
 	"github.com/rodrwan/collection/domain/song"
 )
+
+// ConnectionConfig ...
+type ConnectionConfig struct {
+	Username string
+	Password string
+	Host     string
+	Port     int
+	Database string
+}
+
+func dropConnections(db *sqlx.DB, name string) {
+	query := `
+		select pg_terminate_backend(pg_stat_activity.pid)
+		from pg_stat_activity
+		where pg_stat_activity.datname = $1 and pid <> pg_backend_pid()`
+	_, err := db.Exec(query, name)
+	if err != nil {
+		panic(err)
+	}
+}
 
 type PostgresRepository struct {
 	db *sqlx.DB
@@ -18,9 +39,6 @@ type (
 	SqlOpener func(string, string) (*sqlx.DB, error)
 )
 
-// mongoCustomer is an internal type that is used to store a CustomerAggregate
-// we make an internal struct for this to avoid coupling this mongo implementation to the customeraggregate.
-// Mongo uses bson so we add tags for that
 type postgresRecord struct {
 	ID   uuid.UUID `db:"id"`
 	Name string    `db:"name"`
@@ -47,7 +65,14 @@ func (pr postgresRecord) ToRecord() record.Record {
 }
 
 // Create a new mongodb repository
-func New(ctx context.Context, connectionString string, open SqlOpener) (*PostgresRepository, error) {
+func New(ctx context.Context, connectionConfig ConnectionConfig, open SqlOpener) (*PostgresRepository, error) {
+	username := connectionConfig.Username
+	password := connectionConfig.Password
+	host := connectionConfig.Host
+	port := connectionConfig.Port
+	database := connectionConfig.Database
+
+	connectionString := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable", username, password, host, port, database)
 	client, err := open("postgres", connectionString)
 	if err != nil {
 		return nil, err
@@ -58,6 +83,7 @@ func New(ctx context.Context, connectionString string, open SqlOpener) (*Postgre
 		return nil, err
 	}
 
+	dropConnections(client, database)
 	return &PostgresRepository{
 		db: client,
 	}, nil
