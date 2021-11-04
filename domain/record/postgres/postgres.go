@@ -2,7 +2,7 @@ package postgres
 
 import (
 	"context"
-	"fmt"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -31,8 +31,26 @@ func dropConnections(db *sqlx.DB, name string) {
 	}
 }
 
+type IPostgresGetContext interface {
+	GetContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
+}
+
+type IPostgresNamedExecContext interface {
+	NamedExecContext(ctx context.Context, query string, arg interface{}) (sql.Result, error)
+}
+
+type IPostgresSelectContext interface {
+	SelectContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
+}
+
+type IPostgresSQl interface {
+	IPostgresGetContext
+	IPostgresNamedExecContext
+	IPostgresSelectContext
+}
+
 type PostgresRepository struct {
-	db *sqlx.DB
+	db IPostgresSQl
 }
 
 type (
@@ -65,14 +83,7 @@ func (pr postgresRecord) ToRecord() record.Record {
 }
 
 // Create a new mongodb repository
-func New(ctx context.Context, connectionConfig ConnectionConfig, open SqlOpener) (*PostgresRepository, error) {
-	username := connectionConfig.Username
-	password := connectionConfig.Password
-	host := connectionConfig.Host
-	port := connectionConfig.Port
-	database := connectionConfig.Database
-
-	connectionString := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable", username, password, host, port, database)
+func New(ctx context.Context, connectionString, database string, open SqlOpener) (*PostgresRepository, error) {
 	client, err := open("postgres", connectionString)
 	if err != nil {
 		return nil, err

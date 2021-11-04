@@ -55,15 +55,23 @@ func WithRecordMemoryRepository() CollectionConfiguration {
 }
 
 // WithRecordPostgresRepository ...
-func WithRecordPostgresRepository(connectionString string, connect postgres.SqlOpener) CollectionConfiguration {
+func WithRecordPostgresRepository(connectionString, database string, connect postgres.SqlOpener) CollectionConfiguration {
 	return func(os *CollectionService) error {
-		pg, err := postgres.New(context.Background(), connectionString, connect)
+		pg, err := postgres.New(context.Background(), connectionString, database, connect)
 		if err != nil {
 			log.Fatal(err)
 			return err
 		}
 
 		os.records = pg
+		return nil
+	}
+}
+
+// WithRecordPostgresRepository ...
+func WithRecordPostgresWithMock(mock *postgres.MockDB) CollectionConfiguration {
+	return func(os *CollectionService) error {
+		os.records = postgres.NewMockDB(mock)
 		return nil
 	}
 }

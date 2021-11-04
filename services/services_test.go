@@ -5,10 +5,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/google/uuid"
-	"github.com/jmoiron/sqlx"
 	"github.com/rodrwan/collection/domain/record"
+	"github.com/rodrwan/collection/domain/record/postgres"
 	"github.com/rodrwan/collection/services"
 	"github.com/stretchr/testify/assert"
 )
@@ -323,20 +322,7 @@ func TestCollectionService_AddRecordWithPostgres(t *testing.T) {
 		name string
 		kind string
 	}
-
-	db, mock, err := sqlmock.New()
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
-	}
-
 	id := uuid.New()
-	mock.ExpectExec("INSERT INTO records").
-		WithArgs(id.String(), "lala", "vinyl").
-		WillReturnResult(sqlmock.NewResult(1, 1))
-
-	opener := func(provider string, conn string) (*sqlx.DB, error) {
-		return sqlx.NewDb(db, provider), nil
-	}
 
 	tests := []struct {
 		id          uuid.UUID
@@ -357,17 +343,15 @@ func TestCollectionService_AddRecordWithPostgres(t *testing.T) {
 				Kind: "vinyl",
 			},
 			expectedErr: nil,
-			services: []services.CollectionConfiguration{
-				services.WithRecordPostgresRepository("hello", opener),
-				services.WithSongMemoryRepository(),
-			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			mock := &postgres.MockDB{}
 			cs, _ := services.NewCollectionService(
-				test.services...,
+				services.WithRecordPostgresWithMock(mock),
+				services.WithSongMemoryRepository(),
 			)
 
 			got, err := cs.AddRecord(test.args.id, test.args.name, test.args.kind)
@@ -376,7 +360,10 @@ func TestCollectionService_AddRecordWithPostgres(t *testing.T) {
 				return
 			}
 
+			// expectedQuery
+			expectedQuery := "INSERT INTO records (id, name, kind) VALUES (:id, :name, :kind)"
 			assert.Equalf(t, test.want.Kind, got.Kind, test.description)
+			assert.Equalf(t, expectedQuery, mock.CalledWith()[0], test.description)
 		})
 	}
 }
